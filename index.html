@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber Finans Analisti - Pastel Edition</title>
+    <style>
+        /* ... senin mevcut CSS kodların (aynen kalsın) ... */
+        :root {
+            --bg: #fdf6f9; --card: #ffffff; --primary-pink: #ffb7c5;
+            --primary-blue: #a2d2ff; --accent-purple: #bdb2ff;
+            --text: #4a4e69; --text-light: #9a8c98;
+        }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 40px 20px; }
+        #app-container { width: 100%; max-width: 650px; background: var(--card); border-radius: 30px; padding: 40px; box-shadow: 0 15px 35px rgba(255, 183, 197, 0.15); border: 1px solid rgba(255, 255, 255, 0.8); }
+        h2 { text-align: center; font-weight: 600; color: var(--text); margin-bottom: 30px; }
+        #modButon { background: var(--primary-blue); border: none; color: white; padding: 10px 20px; border-radius: 15px; cursor: pointer; margin-bottom: 25px; font-weight: 600; transition: 0.3s; }
+        
+        /* Yeni: CSV Buton Stili */
+        .csv-label { 
+            background: var(--accent-purple); color: white; padding: 10px 20px; 
+            border-radius: 15px; font-weight: 600; cursor: pointer; 
+            display: inline-block; margin-bottom: 20px; transition: 0.3s;
+        }
+        .csv-label:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(189, 178, 255, 0.4); }
+
+        #tekInput { background: #f8f9fa; border: 2px solid #eee; border-radius: 15px; width: 100%; font-size: 1.1rem; padding: 15px; box-sizing: border-box; margin-bottom: 15px; outline: none; }
+        #topluInput { background: #f8f9fa; border: 2px solid #eee; width: 100%; font-size: 1rem; min-height: 120px; padding: 15px; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; display: none; font-family: inherit; outline: none; }
+        #output { font-size: 1rem; min-height: 100px; line-height: 1.7; white-space: pre-wrap; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        .kategori-satir { color: #52796f; font-weight: 600; }
+        .llm-satir { color: #8e7dbe; font-weight: 500; }
+        .ozet-baslik { color: #ff85a1; font-weight: 700; font-size: 1.2rem; }
+        .bar-row { display: flex; align-items: center; margin: 8px 0; }
+        .bar-label { width: 130px; font-size: 0.85rem; color: var(--text-light); }
+        .bar-bg { flex-grow: 1; height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary-blue), var(--accent-purple)); border-radius: 5px; }
+        .bar-val { margin-left: 10px; font-size: 0.85rem; font-weight: bold; width: 40px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <h2>✨ Siber Finans Analisti</h2>
+
+    <center>
+        <button id="modButon" onclick="modDegistir()">[ TEK ANALİZ MODU ]</button>
+        <div style="margin-bottom: 20px;">
+            <label for="csvFileInput" class="csv-label">📁CSV Yükle</label>
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="csvAnaliziBaslat(event)">
+        </div>
+    </center>
+
+    <p id="girdiEtiketi">> Analiz edilecek harcamayı yazın:</p>
+
+    <input type="text" id="tekInput" autofocus>
+    <textarea id="topluInput" placeholder="Örn:&#10;Migros 450TL&#10;Shell benzin"></textarea>
+
+    <div id="output"></div>
+</div>
+
+<script>
+    // ... senin mevcut değişkenlerin ve modDegistir fonksiyonun (aynen kalsın) ...
+    const tekInput   = document.getElementById('tekInput');
+    const topluInput = document.getElementById('topluInput');
+    const output     = document.getElementById('output');
+    const modButon   = document.getElementById('modButon');
+    const etiket     = document.getElementById('girdiEtiketi');
+    let topluMod = false;
+
+    function modDegistir() {
+        topluMod = !topluMod;
+        if (topluMod) {
+            tekInput.style.display = 'none'; topluInput.style.display = 'block'; topluInput.focus();
+            modButon.textContent = '[ TOPLU ANALİZ MODU ]';
+            etiket.textContent = '> Listeyi yapıştırın ve Ctrl+Enter ile analiz edin:';
+        } else {
+            tekInput.style.display = 'block'; topluInput.style.display = 'none'; tekInput.focus();
+            modButon.textContent = '[ TEK ANALİZ MODU ]';
+            etiket.textContent = '> Analiz edilecek harcamayı yazın:';
+        }
+        output.innerHTML = '';
+    }
+
+    // YENİ: CSV ANALİZ FONKSİYONU
+    async function csvAnaliziBaslat(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        output.innerHTML = '✨ CSV Dosyası Okunuyor ve AI Analiz Ediliyor...';
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/csv-analiz', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            topluSonucGoster(data); // Zaten yazdığımız harika görsel fonksiyonu kullanıyoruz!
+        } catch (err) {
+            output.innerHTML = '<span style="color:red">Hata: Sunucuya ulaşılamadı veya CSV geçersiz.</span>';
+        }
+    }
+
+    // ... Tekli Analiz ve Ctrl+Enter kodların (aynen kalsın) ...
+    tekInput.addEventListener('keypress', async (e) => {
+        if (e.key !== 'Enter') return;
+        const metin = tekInput.value.trim(); if (!metin) return;
+        output.innerHTML = '✨ Analiz ediliyor...';
+        try {
+            const res = await fetch('http://127.0.0.1:8000/analiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ metin })
+            });
+            const data = await res.json();
+            const cls = data.tip === 'Sözlük' ? 'kategori-satir' : 'llm-satir';
+            output.innerHTML = `<span class="${cls}">>>> ANALİZ RAPORU</span><br>${data.cevap}<br><small>Güven: %${data.guven}</small>`;
+        } catch { output.innerHTML = 'Hata!'; }
+    });
+
+    topluInput.addEventListener('keydown', async (e) => {
+        if (!(e.ctrlKey && e.key === 'Enter')) return;
+        const satirlar = topluInput.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        if (satirlar.length === 0) return;
+        output.innerHTML = `✨ İşleniyor...`;
+        try {
+            const res = await fetch('http://127.0.0.1:8000/toplu-analiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ harcamalar: satirlar })
+            });
+            const data = await res.json();
+            topluSonucGoster(data);
+        } catch { output.innerHTML = 'Hata!'; }
+    });
+
+    // ... Senin topluSonucGoster fonksiyonun (aynen kalsın) ...
+    function topluSonucGoster(data) {
+        let html = '<span class="ozet-baslik">📊 TOPLU ANALİZ RAPORU</span><br><br>';
+        data.sonuclar.forEach((s, i) => {
+            const cls = s.tip === 'Sözlük' ? 'kategori-satir' : 'llm-satir';
+            html += `<div style="margin-bottom:8px;"><span class="${cls}">[${i + 1}] ${s.harcama}</span><br><small>↳ ${s.cevap}</small></div>`;
+        });
+        html += '<br><span class="ozet-baslik">📈 İSTATİSTİKSEL ÖZET</span><br>';
+        html += `<p>${data.ozet.ozet_metin}</p>`;
+        Object.entries(data.ozet.kategori_dagilimi).forEach(([kat, yuzde]) => {
+            html += `<div class="bar-row"><div class="bar-label">${kat}</div><div class="bar-bg"><div class="bar-fill" style="width: ${yuzde}%"></div></div><div class="bar-val">%${yuzde}</div></div>`;
+        });
+        output.innerHTML = html;
+    }
+</script>
+</body>
+</html>
